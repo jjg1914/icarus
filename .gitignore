@@ -2,3 +2,6 @@
 *.d
 *.bin
 *.elf
+*.ld
+!*.pp.ld
+qemu.log
