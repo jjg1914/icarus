@@ -1,0 +1,11 @@
+--- a/Device/ARM/ARMCM3/Source/GCC/gcc_arm.ld	2022-08-26 06:11:23.000000000 -0400
++++ b/Device/ARM/ARMCM3/Source/GCC/gcc_arm.ld	2022-08-26 06:11:23.000000000 -0400
+@@ -42,7 +42,7 @@
+   </h>
+  -----------------------------------------------------------------------------*/
+ __RAM_BASE = 0x20000000;
+-__RAM_SIZE = 0x00020000;
++__RAM_SIZE = 0x00002000;
+ 
+ /*--------------------- Stack / Heap Configuration ----------------------------
+   <h> Stack / Heap Configuration
