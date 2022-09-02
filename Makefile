@@ -1,10 +1,15 @@
 TARGETCPU := cortex-m3
 
 VENDORDIR := vendor
+
 CMSISVER := 5.9.0
 CMSISURL := https://github.com/ARM-software/CMSIS_5/archive/refs/tags/$(CMSISVER).tar.gz
 CMSISDIR := $(VENDORDIR)/CMSIS_5-5.9.0
 DEVICEDIR := $(CMSISDIR)/Device/ARM/ARMCM3
+
+MCUVER := 4.3.3
+MCUURL := https://github.com/STMicroelectronics/cmsis_device_f1/archive/refs/tags/v$(MCUVER).tar.gz
+MCUDIR := $(VENDORDIR)/cmsis_device_f1-4.3.3
 
 PATCHDIR := patch
 
@@ -29,11 +34,11 @@ CGDB := cgdb
 PATCH := patch
 
 ASFLAGS := -g -mcpu=$(TARGETCPU)
-CPPFLAGS := -I$(CMSISDIR)/CMSIS/Core/Include -I$(DEVICEDIR)/Include -D ARMCM3 -D __INITIAL_SP=__StackTop -D __PROGRAM_START=_main
+CPPFLAGS := -I$(CMSISDIR)/CMSIS/Core/Include -I$(DEVICEDIR)/Include -I$(MCUDIR)/Include -D ARMCM3 -D __INITIAL_SP=__StackTop -D __LIMIT_SP=__StackLimit -D __PROGRAM_START=_main
 CFLAGS := -g -MP -MD -mcpu=$(TARGETCPU)
 LDFLAGS :=
 OBJCOPYFLAGS := -O binary
-QEMUFLAGS := -M $(SIMULATECPU) -m $(SIMULATEMEM) -nographic -no-reboot -d in_asm,int,exec,cpu,guest_errors,unimp,cpu_reset -D qemu.log
+QEMUFLAGS := -M $(SIMULATECPU) -m $(SIMULATEMEM) -nographic -no-reboot -d in_asm,int,exec,cpu,guest_errors,unimp,cpu_reset -D qemu.log -serial mon:stdio
 GDBFLAGS :=
 CGDBFLAGS := -d $(GDB) -- $(GDBFLAGS)
 PATCHFLAGS := -btp 1
@@ -61,14 +66,17 @@ $(TARGET:.bin=.elf): $(LDFILE:.pp.ld=.ld) $(OBJFILES)
 	$(LD) $(LDFLAGS) -T $^ -o $@
 
 .PHONY: deps
-deps: $(CMSISDIR)
+deps: $(CMSISDIR) $(MCUDIR)
 
 %: %.tar.gz
 	tar -C $(dir $@) -xzf $<
-	[ -f $(PATCHDIR)/$(notdir $@).patch ] && $(PATCH) $(PATCHFLAGS) -d $@ < $(PATCHDIR)/$(notdir $@).patch
+	find $(PATCHDIR) -name $(notdir $@).patch -exec $(PATCH) $(PATCHFLAGS) -d $@ -i '{}' ';'
 
 $(CMSISDIR).tar.gz: | $(VENDORDIR)
 	wget $(CMSISURL) -O $@
+
+$(MCUDIR).tar.gz: | $(VENDORDIR)
+	wget $(MCUURL) -O $@
 
 $(VENDORDIR):
 	mkdir -p $(VENDORDIR)
