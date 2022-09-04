@@ -14,9 +14,9 @@ MCUDIR := $(VENDORDIR)/cmsis_device_f1-4.3.3
 PATCHDIR := patch
 
 TARGET := out.bin
-CFILES := $(wildcard *.c) $(DEVICEDIR)/Source/startup_ARMCM3.c $(DEVICEDIR)/Source/system_ARMCM3.c
-ASFILES := $(wildcard *.s)
-LDFILE := $(DEVICEDIR)/Source/GCC/gcc_arm.ld
+CFILES := $(wildcard *.c) $(MCUDIR)/Source/Templates/system_stm32f1xx.c
+ASFILES := $(wildcard *.s) $(MCUDIR)/Source/Templates/gcc/startup_stm32f100xb.s
+LDFILE := $(MCUDIR)/Source/Templates/gcc/linker/STM32F100XB_FLASH.ld
 OBJFILES := $(CFILES:.c=.o) $(ASFILES:.s=.o)
 
 # supported:
@@ -34,11 +34,12 @@ CGDB := cgdb
 PATCH := patch
 
 ASFLAGS := -g -mcpu=$(TARGETCPU)
-CPPFLAGS := -I$(CMSISDIR)/CMSIS/Core/Include -I$(DEVICEDIR)/Include -I$(MCUDIR)/Include -D ARMCM3 -D __INITIAL_SP=__StackTop -D __LIMIT_SP=__StackLimit -D __PROGRAM_START=_main
+CPPFLAGS := -I$(CMSISDIR)/CMSIS/Core/Include -I$(DEVICEDIR)/Include -I$(MCUDIR)/Include -D ARMCM3 -D STM32F100xB
+#CPPFLAGS := -I$(MCUDIR)/Include -D ARMCM3 -D __INITIAL_SP=__StackTop -D __LIMIT_SP=__StackLimit -D __PROGRAM_START=_main
 CFLAGS := -g -MP -MD -mcpu=$(TARGETCPU)
 LDFLAGS :=
 OBJCOPYFLAGS := -O binary
-QEMUFLAGS := -M $(SIMULATECPU) -m $(SIMULATEMEM) -nographic -no-reboot -d in_asm,int,exec,cpu,guest_errors,unimp,cpu_reset -D qemu.log -serial mon:stdio
+QEMUFLAGS := -M $(SIMULATECPU) -m $(SIMULATEMEM) -nographic -no-reboot -d in_asm,int,exec,cpu,guest_errors,unimp,cpu_reset -D qemu.log #-serial mon:stdio
 GDBFLAGS :=
 CGDBFLAGS := -d $(GDB) -- $(GDBFLAGS)
 PATCHFLAGS := -btp 1
@@ -62,7 +63,7 @@ clean:
 $(TARGET): $(TARGET:.bin=.elf)
 	$(OBJCOPY) $(OBJCOPYFLAGS) $< $@
 	
-$(TARGET:.bin=.elf): $(LDFILE:.pp.ld=.ld) $(OBJFILES)
+$(TARGET:.bin=.elf): $(LDFILE) $(OBJFILES)
 	$(LD) $(LDFLAGS) -T $^ -o $@
 
 .PHONY: deps

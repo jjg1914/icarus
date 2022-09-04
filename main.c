@@ -28,6 +28,11 @@ void enable_clocks()
 void init()
 {
   enable_clocks();
+
+  NVIC_SetPriorityGrouping(0);
+  NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(0, 1, 0));
+  NVIC_EnableIRQ(USART1_IRQn);
+
   usart_set_baud_rate(USART1, 9600);
   usart_enable(USART1);
   usart_write(USART1, "Hello, world!\n");
@@ -39,7 +44,7 @@ void init()
   __asm__("SVC #0");
 }
 
-void _main()
+void main()
 {
   scheduler_init();
   scheduler_exec(init);
@@ -63,4 +68,8 @@ void __attribute__ ((naked)) SVC_Handler()
       reset();
       break;
   }
+}
+
+void __libc_init_array()
+{
 }

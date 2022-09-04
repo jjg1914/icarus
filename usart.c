@@ -49,17 +49,13 @@ void usart_write(USART_TypeDef* usart, const char* buffer)
   }
 }
 
-void USART1_IRQn_handler(void) {
-  // 'Receive register not empty' interrupt.
+void USART1_IRQHandler(void) {
   if (USART1->SR & USART_SR_RXNE) {
-    // Copy new data into the buffer.
     char c = USART1->DR;
-    if (RING_BUFFER_EMPTY(&usart1_read_buffer)) {
+    if (RING_BUFFER_FULL(&usart1_read_buffer)) {
       RING_BUFFER_ADVANCE(&usart1_read_buffer, tail);
     }
     RING_BUFFER_PUT(&usart1_read_buffer, c);
     RING_BUFFER_ADVANCE(&usart1_read_buffer, head);
-    while (USART1->SR & USART_SR_TXE);
-    USART1->DR = '!';
   }
 }
