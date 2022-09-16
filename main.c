@@ -1,6 +1,7 @@
 #include "stm32f100xb.h"
 #include "scheduler.h"
 #include "usart.h"
+#include "util.h"
 
 void reset(void)
 {
@@ -25,6 +26,66 @@ void enable_clocks()
                  (0x1 << GPIO_CRL_CNF3_Pos));
 }
 
+static struct {
+  uint8_t tasks_total;
+  uint8_t tasks_counter;
+  volatile int counter;
+  int limit;
+} test_1_data = { 0, 0, 0, 0 };
+
+void test_1()
+{
+  uint8_t task_number = test_1_data.tasks_counter++;
+  while (test_1_data.counter < test_1_data.limit) {
+    while (test_1_data.counter % test_1_data.tasks_total != task_number) {
+      scheduler_yield();
+    }
+    test_1_data.counter += 1;
+  }
+}
+
+void test(char* args)
+{
+  int test_number;
+  atoi(strtok(args, " "), &test_number);
+
+  switch (test_number) {
+    case 1:
+      {
+        int tmp;
+        atoi(strtok(args, " "), &tmp);
+        test_1_data.tasks_total = tmp;
+        if (test_1_data.tasks_total > 8) {
+          test_1_data.tasks_total = 8;
+        }
+
+        atoi(strtok(args, " "), &tmp);
+        test_1_data.limit = tmp;
+
+        test_1_data.tasks_counter = 0;
+        test_1_data.counter = 0;
+      }
+
+      {
+        uint8_t tasks[8];
+        for (uint8_t i = 0; i < test_1_data.tasks_total; i += 1) {
+          tasks[i] = scheduler_exec(test_1);
+        }
+        for (uint8_t i = 0; i < test_1_data.tasks_total; i += 1) {
+          scheduler_wait(tasks[i]);
+        }
+      }
+
+      {
+        uint8_t buf[12];
+        uint32_t len = fmti(buf, test_1_data.counter);
+        buf[len] = '\0';
+        usart_write(USART1, buf);
+        usart_putc(USART1, '\n');
+      }
+  }
+}
+
 void init()
 {
   enable_clocks();
@@ -35,13 +96,56 @@ void init()
 
   usart_set_baud_rate(USART1, 9600);
   usart_enable(USART1);
-  usart_write(USART1, "Hello, world!\n");
+
   while (1) {
-    uint8_t c;
-    usart_getc(USART1, &c);
-    usart_putc(USART1, c);
+    usart_putc(USART1, '>');
+
+    uint8_t buf[64], *bufp = buf;
+
+    uint8_t flag = 0;
+    do {
+      uint8_t c;
+      usart_getc(USART1, &c);
+
+      switch (c) {
+        case '\r':
+        case '\n':
+          usart_putc(USART1, c == '\r' ? '\n' : c);
+          *bufp = '\0';
+          flag = 1;
+          break;
+        case '\b':
+          if (bufp > buf) {
+            usart_putc(USART1, c);
+            bufp--;
+          }
+          break;
+        default:
+          if ((bufp - buf) < (sizeof(buf) - 1)) {
+            usart_putc(USART1, c);
+            *(bufp++) = c;
+          }
+          break;
+      }
+    } while (!flag);
+
+    switch (buf[0]) {
+      case '$':
+        {
+          uint32_t len = fmti(buf, scheduler_tid());
+          buf[len] = '\0';
+          usart_write(USART1, buf);
+          usart_putc(USART1, '\n');
+        }
+        break;
+      case 't':
+        test(buf + 1);
+        break;
+      case 'x':
+        __asm__("SVC #0");
+        break;
+    }
   }
-  __asm__("SVC #0");
 }
 
 void main()

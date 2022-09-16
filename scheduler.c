@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "usart.h"
 
 #include "stm32f100xb.h"
 
@@ -6,17 +7,9 @@
 #define IDLE_TASK_STACK_SIZE (128)
 #define TASKS_MAX (8)
 
-extern uint32_t __INITIAL_SP;
-extern uint32_t __LIMIT_SP;
-
-typedef enum task_state_e {
-  E_TASK_STATE_OPEN = 0,
-  E_TASK_STATE_DEFUNCT,
-  E_TASK_STATE_PENDING,
-} task_state_e;
-
 typedef struct task_t {
   task_state_e state;
+  task_block_e block;
   void* stack;
   void* stackp;
 } task_t;
@@ -59,7 +52,9 @@ static void scheduler_return()
 static void scheduler_idle_task()
 {
   while(1) {
+    //usart_putc(USART1, 'w');
     __WFI();
+    //usart_putc(USART1, 'W');
     scheduler_yield();
   }
 }
@@ -113,6 +108,16 @@ void scheduler_wait(uint8_t tid)
   tasks[tid].state = E_TASK_STATE_OPEN;
 }
 
+task_state_e scheduler_stat(uint8_t tid)
+{
+  return tasks[tid].state;
+}
+
+uint8_t scheduler_tid()
+{
+  return current_task;
+}
+
 int scheduler_exec(scheduler_function entry)
 {
   int i;
@@ -140,6 +145,26 @@ void scheduler_yield()
   __ISB();
 }
 
+void scheduler_block(task_block_e block)
+{
+  tasks[current_task].block = block;
+  if (block != E_TASK_BLOCK_NONE) {
+    tasks[current_task].state = E_TASK_STATE_BLOCK;
+    scheduler_yield();
+  }
+}
+
+void scheduler_unblock(task_block_e block)
+{
+  for (uint8_t i = 0; i < TASKS_MAX; i += 1) {
+    if (tasks[i].state == E_TASK_STATE_BLOCK && tasks[i].block == block) {
+      //usart_putc(USART1, 'B');
+      tasks[i].state = E_TASK_STATE_PENDING;
+      tasks[i].block = E_TASK_BLOCK_NONE;
+    }
+  }
+}
+
 void __attribute__ ((naked)) PendSV_Handler()
 {
   register int lr __asm("lr");
@@ -152,18 +177,29 @@ void __attribute__ ((naked)) PendSV_Handler()
  			"MRS r0, psp\n"
  			"STMDB r0!, {r4-r11}\n"
     );
-    tasks[current_task].stackp = r0;
+    if (current_task == UINT8_MAX) {
+      idle_task.stackp = r0;
+      current_task = TASKS_MAX - 1;
+    } else {
+      tasks[current_task].stackp = r0;
+    }
 
     uint8_t old_task = current_task;
+    //usart_putc(USART1, '0' + current_task);
     do {
+      //usart_putc(USART1, 'y');
       current_task = (current_task + 1) % TASKS_MAX;
       task = &tasks[current_task];
     } while (current_task != old_task &&
         tasks[current_task].state != E_TASK_STATE_PENDING);
 
     if (current_task == old_task && task->state != E_TASK_STATE_PENDING) {
+      //usart_putc(USART1, 'I');
+      current_task = UINT8_MAX;
       task = &idle_task;
     }
+    //usart_putc(USART1, '0' + current_task);
+    //usart_putc(USART1, task == &idle_task ? 'i' : '&');
   }
 
   r0 = task->stackp;

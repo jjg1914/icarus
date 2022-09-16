@@ -20,4 +20,8 @@ typedef struct ring_buffer_t {
 #define RING_BUFFER_PEEK(X) ((X)->buffer[(X)->tail])
 #define RING_BUFFER_PUT(X, C) ((X)->buffer[(X)->head] = C)
 
+uint32_t fmti(uint8_t* dest, int i);
+uint32_t atoi(uint8_t* src, int* i);
+char* strtok(uint8_t * str, const uint8_t * delimeters);
+
 #endif

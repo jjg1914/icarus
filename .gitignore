@@ -4,3 +4,5 @@
 *.elf
 qemu.log
 vendor/
+environment/
+__pycache__/
