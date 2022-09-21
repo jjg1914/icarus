@@ -13,13 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Cache opt
-      id: cache-opt
-      uses: actions/cache@v3
-      with:
-        path: opt
-        key: ${{ runner.os }}-opt
-
     - name: Cache vendor
       id: cache-vendor
       uses: actions/cache@v3
@@ -27,15 +20,13 @@ jobs:
         path: vendor
         key: ${{ runner.os }}-
 
-    - name: Download gcc-arm
-      run: |
-        mkdir -p opt
-        wget -P opt https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz
-        tar -C opt -xf opt/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz
+    - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
+      with:
+        release: '11.2-2022.02'
       
     - name: Install dependencies
       run: make deps
       
     - name: Build
-      run: |
-        PATH="$PWD/opt/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi/bin:$PATH" make
+      run: make
