@@ -21,7 +21,10 @@ jobs:
         key: ${{ runner.os }}-vendor
 
     - name: Update Repos
-      run: sudo apt update && upgrade
+      run: |
+        sudo apt-get update --yes
+        sudo apt-get upgrade --yes
+
 
     - name: Set up KVM
       run: |
