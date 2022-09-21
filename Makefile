@@ -92,7 +92,7 @@ deps: $(CMSISDIR) $(MCUDIR)
 
 %: %.tar.gz
 	tar -C $(dir $@) -xzf $<
-	find $(PATCHDIR) -name $(notdir $@).patch -exec $(PATCH) $(PATCHFLAGS) -d $@ -i '{}' ';'
+	find $(PATCHDIR) -name $(notdir $@).patch -exec $(PATCH) $(PATCHFLAGS) -d $@ -i "$(shell pwd)/{}" ';'
 
 $(CMSISDIR).tar.gz: | $(VENDORDIR)
 	wget $(CMSISURL) -O $@
