@@ -18,7 +18,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: vendor
-        key: ${{ runner.os }}-
+        key: ${{ runner.os }}-vendor
 
     - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
       uses: carlosperate/arm-none-eabi-gcc-action@v1
@@ -30,3 +30,6 @@ jobs:
       
     - name: Build
       run: make
+
+    - name: Build
+      run: make test
