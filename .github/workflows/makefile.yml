@@ -20,14 +20,23 @@ jobs:
         path: vendor
         key: ${{ runner.os }}-vendor
 
+    - name: Update Repos
+      run: sudo apt update && upgrade
+
+    - name: Set up KVM
+      run: |
+        sudo apt-get install --yes libvirt-daemon
+        sudo systemctl enable libvirtd
+        sudo systemctl start libvirtd
+
+    - name: Set up QEMU
+      run: sudo apt-get install --yes qemu-kvm
+
     - name: Install Arm GNU Toolchain (arm-none-eabi-gcc)
       uses: carlosperate/arm-none-eabi-gcc-action@v1
       with:
         release: '11.2-2022.02'
 
-    - name: Set up QEMU
-      run: sudo apt-get install --yes qemu
-      
     - name: Install dependencies
       run: make deps
       
